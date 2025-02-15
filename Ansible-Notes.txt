@@ -1,0 +1,362 @@
+Ansible
+=======
+
+	Linux 
+	Shell scripting
+	SCM tools: git [github, bitbucket, gitlab]
+	Build tools: maven, gradle, Ant
+	Code quality: SonarQube
+	Artifactory or repository tools: nexus, jfrog
+	Application servers: tomcat, jboss, weblogic
+	Web servers: Apache httpd, nginx, Haproxy
+	CI CD tools: Jenkins, bomboo, travis ci
+	Containerization tools: Docker, Rocket
+	Container orchestration tools: K8s, openshift, docker-swarm
+	Configuration management tools: Ansible, puppet, cheff 
+
+
+
+
+
+
+
+
+
+
+NOTE:
+By using configuration management tools , We can configure “N” number of servers using single machine [configuration server]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Introduction
+===========
+	Ansible is an open source, a Configuration Management Tool and Deployment tool, maintained by Redhat.
+
+	The main components of Ansible are playbooks, configuration management, deployment.
+
+	Ansible uses playbooks to deploy, manage, build, test and configure anything from full server environments to custom compiled source code for applications.
+
+	Ansible was written in Python.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Configuration can be any task which we can perform on servers (hosts). It can be
+
+1)	Install/Update/Uninstalling software (packages)
+2)	Copy files. Changing the permissions on the files or directories.
+3)	Start/Stop/ Restart the services
+4)	Creating / deleting the users..........
+
+
+
+
+
+
+
+
+
+Various Configuration Management Tools
+======================================
+
+•	Ansible
+•	Chef
+•	Puppet
+•	Salt Stack
+
+
+
+
+
+
+
+
+
+
+Ansible Features
+================
+
+
+	Ansible configure machines in an agent-less manner using SSH.
+	Built on top of Python and hence provides a lot of Python’s functionality. YAML-Based Playbooks
+	Uses SSH for secure connections.
+	Follows Push based architecture for sending configurations.
+
+
+IQ]   Pull Based vs Push Based
+
+Tools like Puppet and Chef are pull based.
+Agents on the server periodically checks for the configuration information from central server (Master).
+
+Ansible is push based.
+Central server pushes the configuration information on target servers. You control when the changes are made on the servers.
+
+
+Ansible Architecture
+=====================
+
+
+https://www.google.com/search?sca_esv=8536d3cccb765549&sca_upv=1&rlz=1C1UEAD_enIN1101IN1102&sxsrf=ADLYWIK0P5dFDyf9SS8wj0ACVkOY-eTgQg:1727466226227&q=ansible+architecture&udm=2&fbs=AEQNm0DYVld7NGDZ8Pi819Yg8r6em07j6rW9d2jUMtr8MB7hthlxj_a5JB7GtKl9Rvi8UOrX6vOKeE8ctU8C4v5SDrHEsrgUOOFp5HvlkBZf4yVP83YajKnrlhAJvHG8uQnJWlvuYz8LvE_lwESvEPu-1v94fKd9xhS49UTuNSe7CMY7I5AuGmdDN0lv5iId0gIyD9wyA5aKEve0q31Gi2kwmyWtccpVrQ&sa=X&ved=2ahUKEwiolpqW8eOIAxW8R2wGHdidNlUQtKgLegQILRAB&biw=1440&bih=825&dpr=2#vhid=DpiNvVdi7i47aM&vssid=mosaic
+
+
+Host Inventory:
+===============
+
+
+In Ansible, the host inventory is a file that defines the hosts (machines) that Ansible will manage. This file can be in various formats, but the most common is the INI format. You can also use YAML format for more complex structures.
+
+Some important points in Inventory file.
+-	Comments begin with the '#' character
+-	Blank lines are ignored
+-	Groups of hosts are delimited by [header] elements
+-	You can enter hostnames or ip addresses
+-	A hostname/ip can be a member of multiple groups
+-	Ungrouped hosts are specifying before any group headers, like below
+
+192.168.122.1
+192.168.122.2
+kkdevops.com
+
+[webservers] 
+#192.168.122.1
+192.168.122.2
+192.168.122.3
+kkdevops.com
+
+[dbservers]
+192.168.122.4
+192.168.122.5
+192.168.122.2
+
+
+
+
+--> We have two types of inventories
+
+1. static inventory
+-------------------
+It is a file in the ansible server. It contains the host machine details, Whenever we want to add/remove server information we have to update the static inventory file manually.
+
+
+
+
+
+2. dynamic inventory
+--------------------
+
+
+NOTE: default inventory path: /etc/ansible/hosts
+
+
+
+
+
+
+
+PlayBooks
+==========
+
+-> An Ansible playbook is a YAML file that defines a set of tasks to be executed on one or more med hosts. 
+
+
+Key Components of a Playbook
+----------------------------
+
+Plays: Each play in a playbook maps a group of hosts to a set of tasks. A playbook can contain multiple plays.
+
+Tasks: These are the actions to be performed on the hosts. Each task typically uses an Ansible module to define what to do (e.g., installing a package, copying files, or executing commands).
+
+Modules: Ansible comes with many built-in modules that provide functionality for managing different systems and services.
+
+Variables: You can define variables within playbooks to manage values dynamically and make your playbooks more flexible.
+
+Handlers: Handlers are special tasks that run only when notified by another task. They are often used for restarting services after a configuration change.
+
+Conditionals and Loops: Playbooks support conditionals (e.g., when statements) and loops (e.g., with_items) to control the flow of tasks based on specific conditions or to iterate over a list.
+
+
+Example:
+--------
+
+- name: Install Git on all servers
+  hosts: all
+  tasks:
+    - name: Install Git
+      yum:
+        name: git
+        state: present
+
+
+Example:
+--------
+
+- name: Install Unzip on Database Servers
+  hosts: dbservers
+  tasks:
+    - name: Install Unzip
+      yum:
+        name: unzip
+        state: present
+
+
+
+core modules
+============
+
+Playbook tasks can be implemented through core modules.
+
+custom modules
+==============
+
+we can implement our own modules using the python, But thousands of predefined modules are available.
+
+
+
+
+=====================================================
+
+
+Ansible installation
+====================
+
+IQ] what are the prerequsites required to install ansible?
+
+OS: linux
+lang: python
+
+NOTE: Using ansible we can configure the windows m/c, But ansible is not installed on windows.
+
+
+step 1: create 3 redhat systems
+-------
+
+[1- Ansible system, 2- Host systems for demo] in AWS
+
+ansible server: 172.31.4.33
+Host machine 1: 172.31.4.10
+Host machine 2: 172.31.15.109
+
+step 2:
+-------
+ Login As a root user and create ansible user and provide sudo access in all Servers.
+
+    2.1) Create the user ansible and set the password on all hosts:
+           sudo useradd ansible
+           sudo passwd ansible
+     
+    2.2) Make the necessary entry in sudoers file /etc/sudoers for ansible        
+           user for password-less sudo access:
+          
+           visudo
+
+           ansible ALL=(ALL) NOPASSWD: ALL
+
+       
+
+    2.3) Make the necessary changes  in sshd_config file /etc/ssh/sshd_config    
+           to enable password based authentication.
+
+         Un comment PasswordAuthentication yes
+         and comment  PasswordAuthentication no.
+         And save the file .
+
+           sudo vi /etc/ssh/sshd_config
+
+     2.4)    Then restart sshd service.
+                sudo service sshd restart
+
+==========
+
+
+
+Run in the ansible server
+-------------------------
+
+sudo yum install ansible-core -y
+
+
+sudo su - ansible
+
+sudo vi /etc/ansible/hosts
+
+[my_hosts]
+172.31.4.10 ansible_ssh_user=ec2-user ansible_ssh_private_key_file=~/kkdevopsbl3b2.pem
+
+172.31.15.109 ansible_ssh_user=ec2-user ansible_ssh_private_key_file=~/kkdevopsbl3b2.pem
+
+
+NOTE: pls copy the pem file into linux server
+
+ansible all -m ping
+
+ansible all -m ping -o --> It will display in single line
+
+
+===============================================================================
+
+How to list the ansible modules
+---------------------------------
+
+ansible-doc -l  --> To list all the ansible modules.
+
+ansible-doc -l |grep "copy"
+
+ansible-doc copy ---> to see more about the module
+ansible-doc yum
+ansible-doc shell
+
+
+
+some sample commands
+====================
+
+shell module
+------------
+
+ansible all -m shell -a "df -kh"       [ a means arguments]
+
+ansible all -m shell -a "git --version"
+
+NOTE: in ansible default module is "shell"
+
+ansible all -m shell -a "uptime" or ansible all -a "uptime"
+
+
+IQ] instead of checking all the servers how to check for specific servers like DB or app
+
+
+ansible app -a "free -h"
+ansible db -a "date"
+
+
+yum module
+----------
+
+ansible all -b -m yum -a "name=git"
+
+ansible all -b -m yum -a "name=java"
+
+ansible all -a "java --version"
