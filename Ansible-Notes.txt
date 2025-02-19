@@ -362,6 +362,46 @@ ansible all -b -m yum -a "name=java"
 ansible all -a "java --version"
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ansible all -b -m yum -a "name=httpd state=present" --> Install httpd package in all node.
 
 ansible all -b -m yum -a "name=httpd state=latest" --> to update the httpd packages
@@ -494,6 +534,832 @@ ansible all -b -m command -a "touch security.py"
       name: httpd
       state: started 
 ...
+
+
+==================================================
+
+IQ] what is the difference between copy module and template module?
+
+copy: copy will copy the file from local (ansible server) to remote machines.
+template: template will copy file from local(ansible server) to remote(host) machines,It 	  replace the content using variables, while copying.
+
+
+copy module
+-----------
+---
+- name: Install and configure Apache HTTP server
+  hosts: all  
+  become: true 
+
+  tasks:
+    - name: Install httpd
+      yum:  # Use yum for Red Hat/CentOS or dnf for newer versions
+        name: httpd
+        state: present
+
+    - name: Ensure httpd is started and enabled
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Copy custom index.html to the web root
+      copy:
+        src: index.html  # Path to your local index.html file
+        dest: /var/www/html/index.html  # Destination on the target server
+
+
+
+template module
+----------------
+
+---
+- name: Install and configure Apache HTTP server
+  hosts: all  # Specify your target hosts group
+  become: true  # Use sudo to install packages
+  vars:
+    location: "nellore"       # Change this to your server name
+    date: "21-10-2024"  # Change this to your desired document root
+  tasks:
+    - name: Install httpd
+      yum:  # Use yum for Red Hat/CentOS or dnf for newer versions
+        name: httpd
+        state: present
+
+    - name: Ensure httpd is started and enabled
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Copy custom index.html to the web root
+      template:
+        src: index.html  # Path to your local index.html file
+        dest: /var/www/html/index.html  # Destination on the target server
+
+
+ansible-playbook name.yaml -e location="hyd"
+  or
+ansible-playbook name.yaml -e 'location=hyd phoneNo=99999999'
+
+variables in ansible
+=====================
+IQ] can you explain varibles and its priority in ansible?
+
+1. command line variables
+2. variables in file
+3. varibales in play-book
+4. host-variables
+5. group variables
+
+another approach
+----------------
+
+step 1: create separate vars.yaml
+
+     location: bang
+     phoneNo: 9676831734
+
+step 2: create index.html
+
+    <h1> my location is {{location}}, mobile number is {{phoneNo}} batch date is {{date}}</h1>
+
+step 3: create a playbook name.yaml
+
+- name: Install and configure Apache HTTP server
+  hosts: all  # Specify your target hosts group
+  become: true  # Use sudo to install packages
+  vars_files:
+   - vars.yaml
+  tasks:
+    - name: Install httpd
+      yum:  # Use yum for Red Hat/CentOS or dnf for newer versions
+        name: httpd
+        state: present
+
+    - name: Ensure httpd is started and enabled
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Copy custom index.html to the web root
+      template:
+        src: index.html  # Path to your local index.html file
+        dest: /var/www/html/index.html  # Destination on the target server
+
+
+
+IQ] if i defined variables in plabook and vars.yaml which one will take?
+
+  vars:
+    location: "nellore"       
+    date: "21-10-2024"
+  vars_files:
+   - vars.yaml
+
+ ANS: play-book variables are less priority.
+
+  runtime variables(-e) > variables in a file > playbook variables
+
+
+
+group_vars
+==========
+In Ansible, group_vars is a powerful feature that allows you to define variables that apply to a group of hosts in your inventory. This is particularly useful for managing configurations that differ between different environments (like production and staging) or for organizing variables by application or role.
+
+requirement:
+-----------
+install java 11 in prod
+install java 8 in staging
+
+
+step 1: create a dir in /var/ansible
+
+  sudo  mkdir /var/ansible/group_vars
+  
+step 2: create /var/ansible/group_vars/prod.yaml
+
+   javaVersion: java-11-openjdk-devel
+
+
+step 3: create /var/ansible/host_vars/172.31.0.117.yaml
+
+  javaVersion: java-1.8.0-openjdk-devel
+
+
+step 4:
+
+- hosts: all
+  become: true
+  gather_facts: no
+  tasks:
+    - name: Installing java
+      yum:
+        name: "{{ javaVersion }}"
+
+
+NOTE: It is not installed for un grouped servers, so pls create all.yaml then place variable for ungrouped hosts.
+
+
+host_vars
+==========
+
+
+
+
+
+
+
+
+  
+
+ 
+
+
+=====================================
+
+debug module in ansible
+========================
+
+The debug module in Ansible is a useful tool for outputting information during playbook execution. It helps you inspect variables, confirm task execution, and troubleshoot issues in your Ansible scripts.
+
+
+Example
+-------
+
+---
+- name: Debug Example Playbook
+  hosts: localhost
+  vars:
+    app_name: "order-management"
+    replica_count: 3
+    resource_limits:
+      cpu: "500m"
+      memory: "512Mi"
+    debug_enabled: true
+    env: staging
+
+  tasks:
+    - name: Print application name
+      debug:
+        msg: "The application name is {{ app_name }}"
+
+    - name: Print replica count
+      debug:
+        msg: "The replica count is {{ replica_count }}"
+
+    - name: Print resource limits
+      debug:
+        msg: "CPU limit is {{ resource_limits.cpu }} and Memory limit is {{ resource_limits.memory }}"
+
+
+
+==================================================================
+
+Handlers in ansible
+====================
+
+IQ] what is the difference between tasks and handlers?
+
+--> Tasks are executed in the order they are defined in the playbook. All tasks will run every time the playbook is executed, unless certain conditions (like when statements) are specified.
+
+
+--> Handlers are only executed when notified by a task. If a task makes a change (e.g., installing a package or modifying a file) and issues a notification to a handler, the handler will run after all tasks have been processed.
+
+--> handlers are special kind of tasks, It will not executed by default, until other tasks are notify.
+
+
+--> Handlers will execute at end of the play.
+
+
+Example
+-------
+
+- name: Install and configure Apache HTTP server
+  hosts: all  # Specify your target hosts group
+  become: true  # Use sudo to install packages
+  vars_files:
+   - vars.yaml
+  tasks:
+    - name: Install httpd
+      yum:  # Use yum for Red Hat/CentOS or dnf for newer versions
+        name: httpd
+        state: present
+
+    - name: Ensure httpd is started and enabled
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Copy custom index.html to the web root
+      template:
+        src: index.html  # Path to your local index.html file
+        dest: /var/www/html/index.html  # Destination on the target server
+
+
+
+with handlers
+=============
+
+
+- name: Install and configure Apache HTTP server
+  hosts: all  
+  gather_facts: no
+  become: true  
+  vars_files:
+   - vars.yaml
+  tasks:
+    - name: Install httpd
+      yum:  
+        name: httpd
+        state: present
+
+    - name: Ensure httpd is started and enabled
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Copy custom index.html to the web root
+      template:
+        src: index.html  # Path to your local index.html file
+        dest: /var/www/html/index.html  # Destination on the target server
+      notify:
+        - restarting httpd
+  handlers:
+    - name: restarting httpd
+      service:
+        name: httpd
+        state: restarted
+
+
+===============
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Loops in ansible
+=================
+
+In Ansible, loops allow you to iterate over a list of items, making your playbooks more dynamic and reducing repetition.
+
+
+without lopps
+-------------
+
+---
+- name: Install packages without loops
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Git
+      yum:
+        name: git
+        state: present
+
+    - name: Install Zip
+      yum:
+        name: zip
+        state: present
+
+    - name: Install Vim
+      yum:
+        name: vim
+        state: present
+
+    - name: install unzip
+      yum:
+        name: unzip
+        state: present
+
+
+with-loops
+----------
+approach 1:
+
+- name: Install packages with loops
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install packages
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - git
+        - zip
+        - vim
+        - unzip
+        - tree
+
+
+
+
+
+
+
+
+
+
+
+
+ approach 2:
+
+ - name: Install packages with with_items
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install packages
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - git
+        - zip
+        - vim
+        - unzip
+
+
+How to uninstall?
+-----------------
+
+- name: Uninstall packages with with_items
+  hosts: all
+  become: yes
+  tasks:
+    - name: Uninstall packages
+      yum:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - git
+        - zip
+        - vim
+        - unzip
+
+
+
+Assignment 
+----------
+
+--> create 5 users in all the machines using loops.
+
+---
+- name: Create users on all machines
+  hosts: all
+  become: yes  # Use 'become' to run commands as a superuser
+  vars:
+    users:
+      - nagaraj
+      - santhi
+      - usha
+      - niranjan
+      - sathya
+
+  tasks:
+    - name: Ensure users are present
+      user:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ users }}"
+
+
+
+
+
+
+
+
+
+when condition in ansible
+==========================
+
+
+
+In Ansible, you can use the when condition to control whether a task should be executed based on a specific condition.
+
+NOTE: take one ubuntu machine
+
+
+ansible all -m setup
+
+---
+- name: Install HTTP server conditionally for Ubuntu and Red Hat
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Apache on Ubuntu
+      apt:
+        name: apache2
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Install Apache on Red Hat
+      yum:
+        name: httpd
+        state: present
+      when: ansible_distribution == "RedHat"
+
+    - name: Start Apache service on Ubuntu
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Start Apache service on Red Hat
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+      when: ansible_distribution == "RedHat"
+
+
+
+
+
+
+
+---
+- name: Install HTTP server conditionally for Ubuntu and Red Hat
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Apache on Ubuntu
+      apt:
+        name: apache2
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Start Apache service on Ubuntu
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+      when: ansible_distribution == "Ubuntu"
+
+
+
+
+
+tags in anisble
+===============
+
+In Ansible, a tag is a label that you can assign to tasks, plays, or roles in your playbook. Tags allow you to selectively run specific parts of your playbook without executing the entire playbook. This can be especially useful for larger playbooks where you may want to test or apply only certain tasks.
+
+
+
+
+---
+- name: Install and configure Apache HTTP server
+  hosts: all  
+  become: true 
+
+  tasks:
+    - name: Install httpd
+      yum:  # Use yum for Red Hat/CentOS or dnf for newer versions
+        name: httpd
+        state: present
+      tags: install
+
+    - name: Ensure httpd is started and enabled
+      service:
+        name: httpd
+        state: started
+        enabled: true
+      tags: configure
+
+    - name: Copy custom index.html to the web root
+      copy:
+        src: index.html  # Path to your local index.html file
+        dest: /var/www/html/index.html  # Destination on the target server
+      tags: deploy
+
+
+
+ansible-playbook name.yaml --syntax-check
+
+ansible-playbook name.yaml --list-tags
+
+ansible-playbook your_playbook.yml --tags "deploy"  --> to run the playbook
+
+
+ansible-playbook manage_web_server.yml --skip-tags start  --> to skip the particular task.
+
+
+
+
+roles in ansible
+================
+
+Roles in Ansible are a way to organize playbooks into reusable components.
+
+
+Structure of a Role
+--------------------
+
+A typical role directory structure looks like this:
+
+httpd/
+├── defaults
+│   └── main.yml
+├── files
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── README.md
+├── tasks
+│   └── main.yml
+├── templates
+├── tests
+│   ├── inventory
+│   └── test.yml
+└── vars
+    └── main.yml
+
+
+Key Components of a Role
+------------------------
+
+tasks/: Contains the main list of tasks for the role, typically in main.yml.
+
+handlers/: Contains handlers, which are tasks that run when notified (e.g., to restart a service).
+
+templates/: Contains Jinja2 templates that can be rendered on the target host.
+
+files/: Contains static files that can be copied to the target hosts.
+
+vars/: Contains variables specific to the role.
+
+defaults/: Contains default variables for the role, which can be overridden by the user.
+
+meta/: Contains metadata about the role, such as dependencies on other roles.
+
+
+Creating a Role
+----------------
+
+--> To create a role, you can use the ansible-galaxy command:
+
+ansible-galaxy init my_role
+
+
+Example install and configures an appache HTTp server
+------------------------------------------------------
+
+
+1. tasks/main.yaml
+
+---
+- name: Install Apache
+  yum:
+    name: httpd
+    state: present
+
+- name: Start Apache
+  service:
+    name: httpd
+    state: started
+    enabled: true
+
+
+2. handlers/main.yaml
+
+
+---
+- name: Restart Apache
+  service:
+    name: httpd
+    state: restarted
+
+
+3. defaults/main.yml
+
+---
+httpd_port: 80
+
+4. templates/httpd.conf.j2
+
+Listen {{ httpd_port }}
+ServerName localhost
+
+
+Using the Role in a Playbook
+----------------------------
+
+Once you have created the role, you can use it in a playbook like this:
+
+
+---
+- name: Configure Web Server
+  hosts: webservers
+  become: true
+  roles:
+    - <roleName>
+
+
+for runnning: ansible-playbook playbook.yml -i inventory
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
