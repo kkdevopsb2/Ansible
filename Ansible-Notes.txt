@@ -1131,7 +1131,7 @@ Creating a Role
 
 --> To create a role, you can use the ansible-galaxy command:
 
-ansible-galaxy init apache
+ansible-galaxy init httpd
 
 
 
@@ -1202,7 +1202,7 @@ Place your `index.html` file in this directory. This will be a template that Ans
 
 Example `index.html` (with a simple template):
 
-html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1275,14 +1275,14 @@ Now that the role is created, you can use it in your playbook by specifying the 
 
 yaml
 ---
-- name: Install and configure Apache on all servers
+- name: Install and configure httpd on all servers
   hosts: all  
-  gather_facts: yes  # set to yes so we can use ansible facts like ansible_hostname
+  gather_facts: no  # set to yes so we can use ansible facts like ansible_hostname
   become: true  
   vars_files:
     - vars.yaml  # This file will be referenced in the playbook
   roles:
-    - apache
+    - httpd
 
 
 # `vars.yaml` File (if it's separate from `vars/main.yml`)
@@ -1304,3 +1304,194 @@ apache_server_name: "Custom Apache Server"
 
 
 
+
+
+
+
+
+
+
+Ansible vault
+==============
+
+Ansible Vault is a feature that allows you to encrypt sensitive data such as passwords, SSH keys, and API tokens inside Ansible playbooks or inventory files. This ensures that sensitive information is securely stored and only accessible with a password.
+
+---
+
+ Step 1: Create an Encrypted File
+-------
+First, create a vault-encrypted file to store sensitive data.
+
+
+ansible-vault create secret.yml
+
+
+- Enter a vault password (remember this, you’ll need it later).
+- A text editor opens. Add the following sensitive data:
+
+
+db_password: "SuperSecretPassword123"
+api_key: "abcdef1234567890"
+
+
+
+
+
+Step 2: View the Encrypted File
+-------
+
+Now, check how Ansible Vault has encrypted your file:
+
+
+cat secret.yml
+
+
+✅ Expected Output:  
+The file should appear fully encrypted, something like this:
+
+
+$ANSIBLE_VAULT;1.1;AES256
+6162636465663738393031323334353637383930...
+
+
+---
+
+Step 3: Edit the Encrypted File
+-------
+
+To modify the vault-encrypted file, use:
+
+
+ansible-vault edit secret.yml
+
+
+🔹 Enter the vault password.  
+🔹 Make changes to the file (e.g., update the password).  
+🔹 Save and exit.
+
+---
+
+Step 4: Decrypt the File (Optional)
+--------
+
+If you need to remove encryption and see plain text:
+
+
+ansible-vault decrypt secret.yml
+
+
+Now, check the file:
+
+
+cat secret.yml
+
+
+✅ It should now be readable as normal YAML.
+
+---
+
+Step 5: Re-Encrypt the File
+-------
+
+To re-encrypt a decrypted file:
+
+
+ansible-vault encrypt secret.yml
+
+
+Enter the vault password, and it will be encrypted again.
+
+---
+
+Step 6: Use Vault in a Playbook
+-------
+
+Let’s create a playbook that uses the vault-encrypted variables.
+
+🔹 Create `playbook.yml`:
+
+yaml
+---
+- name: Test Ansible Vault
+  hosts: all
+  vars_files:
+    - secret.yaml
+  tasks:
+    - name: Print sensitive variables
+      debug:
+        msg: "The database password is {{ db_password }}"
+
+
+Run the playbook with Vault:
+
+
+ansible-playbook vaulttest.yaml --ask-vault-pass
+
+
+✅ Expected Output:
+json
+TASK [Print sensitive variables] 
+ok: [localhost] => {
+    "msg": "The database password is SuperSecretPassword123"
+}
+
+
+---
+
+Step 7: Use Vault with a Password File
+-------
+
+Instead of manually entering the vault password, store it in a file:
+
+1️⃣ Create a password file:
+
+
+echo "kkdevops" > vault-password.txt
+chmod 600 vault-password.txt
+
+
+2️⃣ Run the playbook using the password file:
+
+
+ansible-playbook vaulttest.yaml --vault-password-file password.txt
+
+
+✅ No need to type the password manually!
+
+---
+
+ 🎯 Summary
+- `ansible-vault create secret.yml` → Create encrypted file  
+- `ansible-vault view secret.yml` → View encrypted content  
+- `ansible-vault edit secret.yml` → Modify encrypted content  
+- `ansible-vault decrypt secret.yml` → Remove encryption  
+- `ansible-vault encrypt secret.yml` → Re-encrypt file  
+- Use `--ask-vault-pass` or `--vault-password-file` for automation  
+
+---
+
+# 🔥 Bonus: Encrypt an Entire Playbook
+Instead of encrypting just variables, encrypt an entire playbook:
+
+bash
+ansible-vault encrypt playbook.yml
+
+
+Run it:
+
+bash
+ansible-playbook playbook.yml --ask-vault-pass
+
+
+
+
+
+NOTE : if you want to reset the password ,pls use below command
+
+ansible-vault rekey abc.yaml
+
+
+
+⚠️ Important
+❌ There is NO way to recover a lost vault password.
+✅ Always keep a backup of unencrypted files before encrypting.
