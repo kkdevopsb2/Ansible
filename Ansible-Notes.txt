@@ -1495,3 +1495,189 @@ ansible-vault rekey abc.yaml
 ⚠️ Important
 ❌ There is NO way to recover a lost vault password.
 ✅ Always keep a backup of unencrypted files before encrypting.
+
+
+
+
+
+📝 Introduction to Ansible Dynamic Inventory
+==============================================
+Ansible Inventory is the list of hosts (servers) that Ansible manages. By default, Ansible uses a static inventory file (e.g., inventory.ini), where hosts and groups are manually defined.
+
+However, in cloud environments like AWS, servers are dynamic—they are created and terminated frequently. Manually updating inventory files becomes inefficient and error-prone.
+
+🔹 What is Ansible Dynamic Inventory?
+=====================================
+
+Ansible Dynamic Inventory automatically retrieves real-time information about cloud instances, virtual machines, or containers from external sources like AWS, Azure, GCP, or Kubernetes.
+
+Instead of maintaining a static hosts file, Ansible queries the cloud provider’s API and dynamically builds the inventory.
+
+💡 Why Use Dynamic Inventory?
+✅ No Manual Updates – Automatically detects new servers and removes old ones.
+✅ Works with Cloud – Fetches real-time AWS EC2 instances, Azure VMs, or Kubernetes pods.
+✅ Uses Tags and Filters – Group hosts based on tags (e.g., all web servers, db servers).
+✅ Efficient and Scalable – Ideal for large-scale cloud environments.
+
+
+
+
+---
+
+ **📌 Prerequisites**
+1. **AWS Account** with proper IAM permissions.
+2. **Ansible installed** on a control node (Linux/macOS).
+3. **Python and Boto3** installed on the control node.
+4. **AWS CLI installed** and configured with access keys.
+
+---
+
+ **1️⃣ Install Required Dependencies**
+Ensure you have the required Python packages installed:
+
+sudo yum update -y
+sudo yum install python3 -y
+sudo yum install python3-pip -y
+
+pip3 --version
+
+
+sudo pip install boto3 botocore
+
+#pip install ansible
+
+
+---
+
+ **2️⃣ Configure AWS Credentials**
+Ansible needs access to AWS. You can set up your credentials using:
+
+AWS cli
+-------
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+sudo yum install unzip -y
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+
+
+
+
+
+
+aws configure
+
+
+
+[default]
+aws_access_key_id = YOUR_ACCESS_KEY
+aws_secret_access_key = YOUR_SECRET_KEY
+region = ap-south-1
+
+
+
+---
+
+ **3️⃣ Enable Ansible AWS Collection**
+Ensure the AWS collection is installed:
+
+
+ansible-galaxy collection install amazon.aws
+
+
+---
+
+ **4️⃣ Create a Dynamic Inventory File**
+Ansible provides a **dynamic inventory plugin** for AWS.
+
+📌 Create an inventory configuration file:
+
+mkdir -p ~/ansible/inventory
+cd ~/ansible/inventory
+
+
+Create a file `aws_ec2.yml`:
+
+plugin: amazon.aws.aws_ec2
+regions:
+  - ap-south-1
+filters:
+  instance-state-name: running
+keyed_groups:
+  - key: tags.Name
+    prefix: "tag_"
+compose:
+  ansible_host: public_ip_address
+
+
+---
+
+ **5️⃣ Verify the Dynamic Inventory**
+Run the following command to ensure Ansible can fetch instances:
+
+
+ansible-inventory -i aws_ec2.yml --list
+
+
+
+If everything is set up correctly, you should see a JSON output of AWS EC2 instances.
+
+---
+
+ **6️⃣ Run Ansible Commands on AWS Instances**
+ **📌 Example: Ping all AWS EC2 Instances**
+
+ansible all -i aws_ec2.yml -m ping -u ec2-user --private-key /home/ec2-user/kkdevopsbl3b2.pem
+
+
+ansible tag__Hosts -i aws_ec2.yml -m ping -u ec2-user --private-key /home/ec2-user/kkdevopsbl3b2.pem
+
+
+
+ **📌 Example: Run a Command on all EC2 instances**
+
+
+ ansible all -i aws_ec2.yml -m shell -a "uptime" -u ec2-user --private-key /home/ec2-user/kkdevopsbl3b2.pem
+
+
+---
+
+ **7️⃣ Create & Run a Playbook**
+📌 **Create a playbook** `install_apache.yml`:
+yaml
+- name: Install Apache on AWS EC2
+  hosts: tag_WebServers
+  become: yes
+  tasks:
+    - name: Install Apache
+      ansible.builtin.yum:
+        name: httpd
+        state: present
+
+    - name: Start Apache Service
+      ansible.builtin.service:
+        name: httpd
+        state: started
+        enabled: yes
+
+
+📌 **Run the playbook**:
+
+ansible-playbook -i aws_ec2.yml gitInstall.yaml -u ec2-user --private-key /home/ec2-user/kkdevopsbl3b2.pem
+
+
+
+---
+
+ **📌 Summary**
+1. Install `boto3` and `ansible-galaxy collection install amazon.aws`
+2. Set up AWS credentials.
+3. Create `aws_ec2.yml` for dynamic inventory.
+4. Test with `ansible-inventory --list`
+5. Run Ansible commands on AWS EC2 instances.
+6. Deploy Playbooks dynamically.
+
+This should be a **practical and engaging session** for your students. Let me know if you need any modifications or additional examples! 🚀
+
+
+
